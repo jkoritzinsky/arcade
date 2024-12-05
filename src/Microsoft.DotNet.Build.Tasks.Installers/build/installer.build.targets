@@ -82,9 +82,6 @@
     </PropertyGroup>
   </Target>
 
-  <!-- This target is kept for back-compat for targets that would hook it to add package info. -->
-  <Target Name="GetDebInstallerJsonProperties" />
-
   <PropertyGroup>
     <_LinuxPackageType Condition="'$(GenerateDeb)' == 'true'">deb</_LinuxPackageType>
     <_LinuxPackageType Condition="'$(GenerateRpm)' == 'true'">rpm</_LinuxPackageType>
@@ -146,7 +143,7 @@
   </Target>
 
   <Target Name="CreateDeb"
-          DependsOnTargets="_GetInstallerProperties;_GetCommonJsonProperties;GetDebInstallerJsonProperties;_CreateLinuxPackagingLayout"
+          DependsOnTargets="_GetInstallerProperties;_GetCommonLinuxPackageProperties;_CreateLinuxPackagingLayout"
           Returns="$(_InstallerFile)">
     <ItemGroup>
       <_ChangelogFile Include="$(_LayoutDocs)/$(VersionedInstallerName)/changelog.Debian.gz" />
@@ -257,7 +254,7 @@
   <Target Name="CreateRpm"
           DependsOnTargets="
             _GetInstallerProperties;
-            GetRpmInstallerJsonProperties;
+            _GetCommonLinuxPackageProperties;
             _CreateLinuxPackagingLayout"
           Returns="$(_InstallerFile)">
     <!--
@@ -310,10 +307,6 @@
 
     <Message Text="$(MSBuildProjectName) -> $(_InstallerFile)" Importance="high" />
   </Target>
-
-  <!-- This target is kept for back-compat for targets that would hook it to add package info. -->
-  <Target Name="GetRpmInstallerJsonProperties"
-          DependsOnTargets="_GetCommonJsonProperties" />
 
   <!--
     Create MSI installer, using WiX tools.
@@ -426,9 +419,9 @@
   </Target>
 
   <!--
-    Get common JSON properties. Used in the configuration JSON for both RPM and Debian packages.
+    Get common Linux package properties. Used for production of both RPM and Debian packages.
   -->
-  <Target Name="_GetCommonJsonProperties">
+  <Target Name="_GetCommonLinuxPackageProperties">
     <PropertyGroup>
       <FullLicenseText>$([System.IO.File]::ReadAllText('$(LicenseFile)').Replace('%0A', '\n').Replace('"', '\"'))</FullLicenseText>
       <LinuxPackageArchitecture>$(_InstallerArchSuffix)</LinuxPackageArchitecture>
@@ -439,49 +432,11 @@
       <_PackageLongDescription Condition="'$(_PackageLongDescription)' == ''">.NET is a development platform that you can use to build command-line applications, microservices and modern websites. It is open source, cross-platform and is supported by Microsoft. We hope you enjoy using it! If you do, please consider joining the active community of developers that are contributing to the project on GitHub (https://github.com/dotnet/core). We happily accept issues and PRs.</_PackageLongDescription>
     </PropertyGroup>
 
-    <ItemGroup>
-      <_LinuxPackageReleaseProperty Include="package_version" String="1.0.0.0" />
-      <_LinuxPackageReleaseProperty Include="package_revision" String="$(InstallerPackageRelease)" />
-      <_LinuxPackageReleaseProperty Include="urgency" String="low" />
-      <_LinuxPackageReleaseProperty Include="changelog_message" String="https://github.com/dotnet/core/tree/master/release-notes" />
-
-      <_LinuxPackageControlProperty Include="priority" String="standard" />
-      <_LinuxPackageControlProperty Include="section" String="libs" />
-      <_LinuxPackageControlProperty Include="architecture" String="$(LinuxPackageArchitecture)" />
-
-      <_LinuxPackageLicenseProperty Include="type" String="MIT and ASL 2.0 and BSD" />
-      <_LinuxPackageLicenseProperty Include="full_text" String="$(FullLicenseText)" />
-    </ItemGroup>
-
-    <GenerateJsonObjectString Properties="@(_LinuxPackageReleaseProperty)">
-      <Output TaskParameter="Json" PropertyName="_JsonReleaseObject" />
-    </GenerateJsonObjectString>
-    <GenerateJsonObjectString Properties="@(_LinuxPackageControlProperty)">
-      <Output TaskParameter="Json" PropertyName="_JsonControlObject" />
-    </GenerateJsonObjectString>
-    <GenerateJsonObjectString Properties="@(_LinuxPackageLicenseProperty)">
-      <Output TaskParameter="Json" PropertyName="_JsonLicenseObject" />
-    </GenerateJsonObjectString>
-
     <PropertyGroup>
       <_ShortDescription Condition="'$(PackageSummary)' != ''">$(PackageSummary)</_ShortDescription>
       <_ShortDescription Condition="'$(PackageSummary)' == ''">$(MSBuildProjectName) $(InstallerPackageVersion)</_ShortDescription>
       <_ShortDescription Condition="'$(PackageSummary)' == '' and '$(UseBrandingNameInLinuxPackageDescription)' == 'true'">$(ProductBrandName)</_ShortDescription>
     </PropertyGroup>
-
-    <ItemGroup>
-      <_CommonLinuxPackageProperty Include="package_name" String="$(VersionedInstallerName)" />
-      <_CommonLinuxPackageProperty Include="short_description" String="$(_ShortDescription)" />
-      <_CommonLinuxPackageProperty Include="maintainer_name" String=".NET Team" />
-      <_CommonLinuxPackageProperty Include="maintainer_email" String="dotnetpackages@dotnetfoundation.org" />
-      <_CommonLinuxPackageProperty Include="install_root" String="$(LinuxInstallRoot)" />
-      <_CommonLinuxPackageProperty Include="long_description" String="$(_PackageLongDescription)" />
-      <_CommonLinuxPackageProperty Include="homepage" String="https://github.com/dotnet/core" />
-      <_CommonLinuxPackageProperty Include="copyright" String="$(_PackageCopyright)" />
-      <_CommonLinuxPackageProperty Include="release" Object="$(_JsonReleaseObject)" />
-      <_CommonLinuxPackageProperty Include="control" Object="$(_JsonControlObject)" />
-      <_CommonLinuxPackageProperty Include="license" Object="$(_JsonLicenseObject)" />
-    </ItemGroup>
   </Target>
 
 </Project>
