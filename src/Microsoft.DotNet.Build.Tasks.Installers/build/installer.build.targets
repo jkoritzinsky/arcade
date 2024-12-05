@@ -129,7 +129,7 @@
 
     <ItemGroup>
       <!-- Allow the old DebSymlink name and the new LinuxPackageSymlink name. -->
-      <_SymlinksToCreate Include="@(DebSymlink);@(LinuxPackageSymlink)" />
+      <_SymlinksToCreate Include="@(LinuxPackageSymlink)" />
     </ItemGroup>
 
     <!-- Create any symlinks -->
