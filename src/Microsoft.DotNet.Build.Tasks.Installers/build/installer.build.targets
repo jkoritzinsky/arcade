@@ -386,39 +386,6 @@
   </Target>
 
   <!--
-    Create installer layout. Used for RPM and Deb package creation.
-  -->
-  <Target Name="_CreateInstallerLayout">
-    <PropertyGroup>
-      <_LayoutDirectory>$(IntermediateOutputPath)installer/layoutDirectory/</_LayoutDirectory>
-      <_LayoutPackageRoot>$(_LayoutDirectory)package_root</_LayoutPackageRoot>
-      <_LayoutAbsolute>$(_LayoutDirectory)$</_LayoutAbsolute>
-      <_LayoutSamples>$(_LayoutDirectory)samples</_LayoutSamples>
-      <_LayoutDocs>$(_LayoutDirectory)docs</_LayoutDocs>
-    </PropertyGroup>
-
-    <RemoveDir Condition="Exists('$(_InstallerIntermediatesDir)')" Directories="$(_InstallerIntermediatesDir)" />
-    <MakeDir Directories="$(_InstallerIntermediatesDir)" />
-
-    <!-- Create empty layout. -->
-    <RemoveDir Condition="Exists('$(_LayoutDirectory)')" Directories="$(_LayoutDirectory)" />
-    <MakeDir Directories="$(_LayoutDirectory)" />
-    <MakeDir Directories="$(_LayoutAbsolute)" />
-    <MakeDir Directories="$(_LayoutPackageRoot)" />
-    <MakeDir Directories="$(_LayoutSamples)" />
-    <MakeDir Directories="$(_LayoutDocs)" />
-    
-    <MSBuild Projects="$(MSBuildProjectFullPath)"
-             Targets="PublishToDisk"
-             Properties="OutputPath=$([MSBuild]::EnsureTrailingSlash('$(_LayoutPackageRoot)'))"
-             RemoveProperties="@(_GlobalPropertiesToRemoveForPublish)"  />
-    
-    <Copy
-      SourceFiles="@(Manpage)"
-      DestinationFiles="@(Manpage->'$(_LayoutDocs)/%(RecursiveDir)%(Filename)%(Extension)')" />
-  </Target>
-
-  <!--
     Get common Linux package properties. Used for production of both RPM and Debian packages.
   -->
   <Target Name="_GetCommonLinuxPackageProperties">
