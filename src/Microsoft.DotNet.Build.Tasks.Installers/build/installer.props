@@ -5,8 +5,7 @@
     <VersionInstallerName>true</VersionInstallerName>
     <IncludeVersionInMacOSComponentName>true</IncludeVersionInMacOSComponentName>
   </PropertyGroup>
-  
-  <UsingTask TaskName="BuildFPMToolPreReqs" AssemblyFile="$(MicrosoftDotNetBuildTasksInstallersTaskAssembly)"/>
+
   <UsingTask TaskName="CreateLightCommandPackageDrop" AssemblyFile="$(MicrosoftDotNetBuildTasksInstallersTaskAssembly)" />
   <UsingTask TaskName="ExecWithRetries" AssemblyFile="$(MicrosoftDotNetBuildTasksInstallersTaskAssembly)" />
   <UsingTask TaskName="GenerateCurrentVersion" AssemblyFile="$(MicrosoftDotNetBuildTasksInstallersTaskAssembly)" />

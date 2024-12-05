@@ -1,14 +1,9 @@
 <Project>
 
   <Import Project="$(MSBuildThisFileDirectory)wix/wix.targets" />
-  
-  <PropertyGroup>
-    <_CreateRpmTargets Condition="'$(UseArcadeRpmTooling)' != 'true'">FindFPM;CreateRpmUsingFpm</_CreateRpmTargets>
-    <_CreateRpmTargets Condition="'$(UseArcadeRpmTooling)' == 'true'">CreateRpm</_CreateRpmTargets>
-  </PropertyGroup>
 
   <Target Name="GenerateDeb" DependsOnTargets="CreateDeb" />
-  <Target Name="GenerateRpm" DependsOnTargets="$(_CreateRpmTargets)" />
+  <Target Name="GenerateRpm" DependsOnTargets="CreateRpm" />
   <Target Name="GenerateMsi" DependsOnTargets="CreateWixInstaller" />
   <Target Name="GenerateCrossArchMsi" DependsOnTargets="CreateCrossArchWixInstaller" />
   <Target Name="GeneratePkg" DependsOnTargets="CreatePkg" />
@@ -105,29 +100,6 @@
       <_InstallerFileNameWithoutExtensionCblMariner2>$(InstallerName)-$(_InstallerBuildPartCblMariner2)$(CrossArchContentsBuildPart)</_InstallerFileNameWithoutExtensionCblMariner2>
       <_InstallerFileCblMariner2>$(PackageOutputPath)$(_InstallerFileNameWithoutExtensionCblMariner2)$(InstallerExtension)</_InstallerFileCblMariner2>
     </PropertyGroup>
-  </Target>
-
-  <!--
-    Check if the RPM package build tool prereq is available.
-  -->
-  <Target Name="FindFPM">
-    <!-- run FPM  -->
-    <Exec
-      Command="/usr/bin/env fpm -h > /dev/null 2>&amp;1"
-      ContinueOnError="true"
-      IgnoreExitCode="true"
-      IgnoreStandardErrorWarningFormat="true">
-      <Output TaskParameter="ExitCode" PropertyName="_FPMSearchExitCode" />
-    </Exec>
-
-    <!-- Check if it successfully showed us a help message. -->
-    <PropertyGroup>
-      <_FPMPresent>false</_FPMPresent>
-      <_FPMPresent Condition=" '$(_FPMSearchExitCode)' == '0' ">true</_FPMPresent>
-    </PropertyGroup>
-
-    <Error Condition=" '$(_FPMPresent)'  != 'true' "
-             Text="FPM tool Not found, RPM packages will not be built." />
   </Target>
 
   <!-- This target is kept for back-compat for targets that would hook it to add package info. -->
@@ -359,62 +331,6 @@
     <Message Text="$(MSBuildProjectName) -> $(_InstallerFile)" Importance="high" />
   </Target>
 
-  <Target Name="CreateRpmUsingFpm"
-          DependsOnTargets="
-            _GetInstallerProperties;
-            _CreateInstallerLayout;
-            GetRpmInstallerJsonProperties"
-          Condition="'$(_FPMPresent)' == 'true'"
-          Returns="$(_InstallerFile)">
-    <PropertyGroup>
-      <_ConfigJsonFile>$(_LayoutDirectory)rpm_config.json</_ConfigJsonFile>
-      <_RpmIntermediatesDir>$(_InstallerIntermediatesDir)out-rpm</_RpmIntermediatesDir>
-
-      <!-- Copyright, Changelog -->
-      <_RpmTemplatesLayoutDir>$(_LayoutDirectory)templates/</_RpmTemplatesLayoutDir>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <_RpmTemplateFile Include="$(MSBuildThisFileDirectory)rpm_templates/**/*" />
-    </ItemGroup>
-
-    <Copy
-      SourceFiles="@(_RpmTemplateFile)"
-      DestinationFiles="@(_RpmTemplateFile->'$(_RpmTemplatesLayoutDir)%(RecursiveDir)%(Filename)%(Extension)')" />
-
-    <GenerateJsonObjectString
-      Properties="@(_CommonLinuxPackageProperty);@(_RpmJsonProperty)"
-      TargetFile="$(_ConfigJsonFile)" />
-
-    <MakeDir Directories="$(_RpmIntermediatesDir)" />
-
-    <!-- Call the task to build the pre-reqs (parameters, copyright, changelog) for calling the FPM tool -->
-    <BuildFPMToolPreReqs
-      InputDir="$(_LayoutDirectory)"
-      OutputDir="$(_RpmIntermediatesDir)"
-      PackageVersion="$(InstallerPackageVersion)"
-      ConfigJsonFile="$(_ConfigJsonFile)">
-      <Output TaskParameter="FPMParameters" PropertyName="FPMCmdParameters" />
-    </BuildFPMToolPreReqs>
-
-    <Exec Command="fpm $(FPMCmdParameters)" WorkingDirectory="$(_RpmIntermediatesDir)" />
-
-    <!-- Copy package to output -->
-    <ItemGroup>
-      <GeneratedRpmFiles Include="$(_RpmIntermediatesDir)/*.rpm" />
-    </ItemGroup>
-
-    <Error Text="@(GeneratedRpmFiles->Count()) .rpm files generated." Condition="'@(GeneratedRpmFiles->Count())' != 1" />
-
-    <Copy SourceFiles="@(GeneratedRpmFiles)"
-          DestinationFiles="$(_InstallerFile)"
-          OverwriteReadOnlyFiles="True"
-          SkipUnchangedFiles="False"
-          UseHardlinksIfPossible="False" />
-
-    <Message Text="$(MSBuildProjectName) -> $(_InstallerFile)" Importance="high" />
-  </Target>
-
   <Target Name="_BuildMarinerRpms"
           AfterTargets="GenerateRpm"
           Condition="'$(CreateRPMForCblMariner)' == 'true'">
@@ -437,18 +353,9 @@
     <Message Text="$(MSBuildProjectName) -> $(_InstallerFileCblMariner2)" Importance="high" />
   </Target>
 
+  <!-- This target is kept for back-compat for targets that would hook it to add package info. -->
   <Target Name="GetRpmInstallerJsonProperties"
-          DependsOnTargets="_GetCommonJsonProperties">
-    <ItemGroup>
-      <_FpmDependenciesJsonEntry Include="@(LinuxPackageDependency->'{&quot;package_name&quot; : &quot;%(Identity)&quot;, &quot;package_version&quot; : &quot;%(Version)&quot;}')" />
-    </ItemGroup>
-    <ItemGroup>
-      <_RpmJsonProperty Include="vendor" String=".NET Foundation" />
-      <_RpmJsonProperty Include="install_doc" String="/usr/share/doc/$(VersionedInstallerName)/" />
-      <_RpmJsonProperty Include="rpm_dependencies" Object="[@(_FpmDependenciesJsonEntry,', ')]" />
-      <_RpmJsonProperty Include="@(RpmJsonProperty)" />
-    </ItemGroup>
-  </Target>
+          DependsOnTargets="_GetCommonJsonProperties" />
 
   <!--
     Create MSI installer, using WiX tools.
